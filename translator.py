@@ -1,6 +1,6 @@
 from z3 import *
 
-verbose=False
+verbose=True
 
 
 def DeclareVar(sort,name):
@@ -80,8 +80,8 @@ def ReadQuery(bmExpr):
             for expr in self.argList:
                 self.Sorts.append(getSort(expr[1]))
             self.Sorts.append(getSort(self.retSort))
+            self.targetFunction=Function('__TARGET_FUNCTION__', *(self.Sorts))
     synFunction=SynFunction(SynFunExpr)
-    targetFunction=Function('__TARGET_FUNCTION__', *(synFunction.Sorts))
     
     #Specification
     spec=[]
@@ -89,7 +89,7 @@ def ReadQuery(bmExpr):
     for constraint in Constraints:
         spec_smt2.append('(assert %s)'%(toString(constraint[1:])))
     spec_smt2='\n'.join(spec_smt2)
-    spec = parse_smt2_string(spec_smt2,decls=dict(VarTable, **{synFunction.name:targetFunction}))
+    spec = parse_smt2_string(spec_smt2,decls=dict(VarTable, **{synFunction.name:synFunction.targetFunction}))
     spec = And(spec)
     if verbose:
         print("spec:",spec)
@@ -107,8 +107,6 @@ def ReadQuery(bmExpr):
     
     for constraint in Constraints:
         GenSpecConn(constraint[1:],SpecConnSet,synFunction)
-    if verbose:
-        print(SpecConnSet)
     SpecConnSet=list(SpecConnSet)
     SpecConn=[]
     for SpecConnExpr in SpecConnSet:
@@ -116,26 +114,25 @@ def ReadQuery(bmExpr):
         for i in range(len(SpecConnExpr)):
             spec_smt2.append('(assert (= %s __INPUT__PORT__%d__))'%(SpecConnExpr[i],i))
         spec_smt2='\n'.join(spec_smt2)
-        specConn=parse_smt2_string(spec_smt2,decls=dict(VarTable.items()+InputPortList+[(synFunction.name,targetFunction)]))
+        specConn=parse_smt2_string(spec_smt2,decls=dict(VarTable.items()+InputPortList+[(synFunction.name,synFunction.targetFunction)]))
         SpecConn.append(And(specConn))
     specConn=Or(SpecConn)
     if verbose:
         print(specConn)
 
     class Checker:
-        def __init__(self, spec, specConn, VarTable, InputPortList, targetFunction, synFunction):
+        def __init__(self, spec, specConn, VarTable, InputPortList, synFunction):
             self.spec=spec
             self.specConn=specConn
             self.VarTable=VarTable
             self.InputPortList=InputPortList
-            self.targetFunction=targetFunction
             self.synFunction=synFunction
             argString=[]
             for item in InputPortList:
                 argString.append(item[0])
             argString=' '.join(argString)
             self.appendAssert="(assert (= (__TARGET_FUNCTION__ %s) (%s %s)))"%(argString,synFunction.name,argString)
-            self.SymbolTable=dict(InputPortList+[("__TARGET_FUNCTION__",targetFunction)])
+            self.SymbolTable=dict(InputPortList+[("__TARGET_FUNCTION__",synFunction.targetFunction)])
             self.solver=Solver()
 
         def check(self,funcDefStr):
@@ -143,6 +140,8 @@ def ReadQuery(bmExpr):
             self.solver.add(Not(self.spec))
             self.solver.add(self.specConn)
             constraint=parse_smt2_string(funcDefStr+self.appendAssert,decls=self.SymbolTable)
+            if verbose:
+                print(constraint)
             self.solver.add(constraint)
             res=self.solver.check()
             if res==unsat:
@@ -156,5 +155,5 @@ def ReadQuery(bmExpr):
                     counterExample.append(model[item[1]])
                 return counterExample
     
-    checker=Checker(spec, specConn, VarTable, InputPortList, targetFunction, synFunction)
+    checker=Checker(spec, specConn, VarTable, InputPortList, synFunction)
     return checker
