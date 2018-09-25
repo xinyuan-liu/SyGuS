@@ -73,7 +73,7 @@ def ReadQuery(bmExpr):
     class SynFunction:
         def __init__(self, SynFunExpr):
             self.name=SynFunExpr[1]
-            # TODO: single arg
+            # TODO: arg and ret sort
             self.argList=SynFunExpr[2]
             self.retSort=SynFunExpr[3]
             self.Sorts=[]
@@ -131,8 +131,8 @@ def ReadQuery(bmExpr):
             for item in InputPortList:
                 argString.append(item[0])
             argString=' '.join(argString)
-            self.appendAssert="(assert (= (__TARGET_FUNCTION__ %s) (%s %s)))"%(argString,synFunction.name,argString)
-            self.SymbolTable=dict(InputPortList+[("__TARGET_FUNCTION__",synFunction.targetFunction)])
+            self.appendAssert="(assert (= (%s %s) (%s %s)))"%(synFunction.targetFunction.name(),argString,synFunction.name,argString)
+            self.SymbolTable=dict(InputPortList+[(synFunction.targetFunction.name(),synFunction.targetFunction)])
             self.solver=Solver()
 
         def check(self,funcDefStr):
