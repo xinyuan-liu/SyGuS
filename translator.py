@@ -22,7 +22,7 @@ def toString(Expr,Bracket=True):
     if not Bracket:
         return "%s"%(' '.join(subexpr))
     # Avoid Redundant Brackets
-    if type(Expr)==list and len(Expr)==1:
+    if len(subexpr)==1:
         return "%s"%(' '.join(subexpr))
     else:
         return "(%s)"%(' '.join(subexpr))
