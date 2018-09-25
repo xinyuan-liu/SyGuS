@@ -84,7 +84,6 @@ def ReadQuery(bmExpr):
     synFunction=SynFunction(SynFunExpr)
     
     #Specification
-    spec=[]
     spec_smt2=[]
     for constraint in Constraints:
         spec_smt2.append('(assert %s)'%(toString(constraint[1:])))
@@ -97,14 +96,12 @@ def ReadQuery(bmExpr):
     #Input Port Specification
     InputPortList=[]
     for i in range(len(synFunction.argList)):
-        arg=synFunction.argList[i]
         portName="__INPUT__PORT__%d__"%i
         InputPortList.append((portName,DeclareVar(arg[1],portName)))
     if verbose:
         print(InputPortList)
 
     SpecConnSet=set()
-    
     for constraint in Constraints:
         GenSpecConn(constraint[1:],SpecConnSet,synFunction)
     SpecConnSet=list(SpecConnSet)
