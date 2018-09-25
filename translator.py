@@ -96,8 +96,9 @@ def ReadQuery(bmExpr):
     #Input Port Specification
     InputPortList=[]
     for i in range(len(synFunction.argList)):
+        sort=synFunction.argList[i][1]
         portName="__INPUT__PORT__%d__"%i
-        InputPortList.append((portName,DeclareVar(arg[1],portName)))
+        InputPortList.append((portName,DeclareVar(sort,portName)))
     if verbose:
         print(InputPortList)
 
