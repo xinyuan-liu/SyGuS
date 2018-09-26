@@ -1,6 +1,6 @@
 from z3 import *
 
-verbose=True
+verbose=False
 
 
 def DeclareVar(sort,name):
@@ -10,12 +10,18 @@ def DeclareVar(sort,name):
 def getSort(sort):
     if sort=="Int":
         return IntSort()
-
+# TODO:tuple
 def toString(Expr,Bracket=True):
+    if type(Expr)==str:
+        return Expr
+    if type(Expr)==tuple:
+        return str(expr[1])
     subexpr=[]
     for expr in Expr:
         if type(expr)==list:
             subexpr.append(toString(expr))
+        elif type(expr)==tuple:
+            subexpr.append(str(expr[1]))
         else:
             subexpr.append(expr)
 
@@ -32,9 +38,11 @@ def GenSpecConn(Expr,SpecConnSet,synFunction):
         if type(expr)==list:
             if expr[0]==synFunction.name:
                 assert(len(expr)-1==len(synFunction.argList))
+                print(expr)
                 l=[]
                 for xpr in expr[1:]:
                     l.append(toString(xpr,False))
+                print(l)
                 SpecConnSet.add(tuple(l))
                 for xpr in expr[1:]:
                     GenSpecConn(xpr,SpecConnSet,synFunction)
@@ -106,12 +114,14 @@ def ReadQuery(bmExpr):
     for constraint in Constraints:
         GenSpecConn(constraint[1:],SpecConnSet,synFunction)
     SpecConnSet=list(SpecConnSet)
+    #print(SpecConnSet)
     SpecConn=[]
     for SpecConnExpr in SpecConnSet:
         spec_smt2=[]
         for i in range(len(SpecConnExpr)):
             spec_smt2.append('(assert (= %s __INPUT__PORT__%d__))'%(SpecConnExpr[i],i))
         spec_smt2='\n'.join(spec_smt2)
+        #print(spec_smt2)
         specConn=parse_smt2_string(spec_smt2,decls=dict(VarTable.items()+InputPortList+[(synFunction.name,synFunction.targetFunction)]))
         SpecConn.append(And(specConn))
     specConn=Or(SpecConn)
